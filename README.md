@@ -1,6 +1,6 @@
 # Intro
 mkiapp simplifies the process of "putting the pieces together" when writing iApps.
-It combines seperate files for presentation, implementation, macro and help section ("section files") into a iApp Template file, which can be loaded via the WebUI or tmsh.
+It combines separate files for presentation, implementation, macro and help section ("section files") into a iApp Template file, which can be loaded via the WebUI or tmsh.
 
 `mkiapp` itself relies `bash`, `awk` and `cat` - common tools available on all platforms nowadays.
 
@@ -71,7 +71,7 @@ You could also add this variable to the `.mkiapp_config` file to automatically s
 
     export MKIAPP_ENV_PRESENTATION_GITHASH=\$(git log -1 --pretty=%h)
 
-In addition `MKIAPP_FILE_`/`<MKIAPP_FILE_>` variables/placeholders allow to include file contents instead of a single variable. This can be helpful, for example to include additional script code in the implementation section.
+In addition, `MKIAPP_FILE_`/`<MKIAPP_FILE_>` variables/placeholders allow to include file contents instead of a single variable. This can be helpful, for example to include additional script code in the implementation section.
 
 > *Important:* All information on the line containing the placeholder `<MKIAPP_FILE_>` will be replaced! Make sure the placeholder is the *only* entry in the line.
 
@@ -113,7 +113,5 @@ The builtin template can be listed with `mkiapp showbuiltin`:
         tmpl-checksum none
         tmpl-signature none
     }
-
-You can customize / this further, for example example allow to customize the description field as outlined above.
 
 > *Important:* Please note that the the whole line of section file placeholders `<MKIAPP_SECTIONFILE_>` will be replaced! Make sure the placeholder is the *only* entry in the line, as shown above.
