@@ -1,0 +1,219 @@
+#!/usr/bin/env bash
+
+VERSION="2018-09-22"
+
+program=$(basename $0)
+
+# builtin template
+builtinTemplate=$(cat <<'EOF'
+#TMSH-VERSION: <MKIAPP_VAR_TMSH_VERSION>
+
+cli admin-partitions {
+    update-partition Common
+}
+sys application template /Common/<MKIAPP_IAPP_TEMPLATE_NAME> {
+    actions {
+        definition {
+            html-help {
+<MKIAPP_SECTIONFILE_HELP>
+            }
+            implementation {
+<MKIAPP_SECTIONFILE_IMPLEMENTATION>
+            }
+            macro {
+<MKIAPP_SECTIONFILE_MACRO>
+            }
+            presentation {
+<MKIAPP_SECTIONFILE_PRESENTATION>
+            }
+            role-acl none
+            run-as none
+        }
+    }
+    description none
+    ignore-verification false
+    requires-bigip-version-max <MKIAPP_VAR_MINVERSION>
+    requires-bigip-version-min <MKIAPP_VAR_MAXVERSION>
+    requires-modules { <MKIAPP_VAR_MODULES> }
+    signing-key none
+    tmpl-checksum none
+    tmpl-signature none
+}
+EOF
+)
+
+# error function and error handling
+function err_exit() {
+    echo "Error: $1"
+    exit 1
+}
+
+# check for awk and cat
+awkcmd=$(command -v awk || command -v gawk)
+catcmd=$(command -v cat)
+if [[ -z $awkcmd ]]; then
+    err_exit "could not find 'awk' in \$PATH."
+fi
+if [[ -z $catcmd ]]; then
+    err_exit "could not find 'cat' in \$PATH."
+fi
+
+# init mkiapp function
+function mkinit() {
+if [[ ! -e $(pwd)/.mkiapp_config ]]; then
+cat <<EOF > $(pwd)/.mkiapp_config
+# iapp template name
+export MKIAPP_IAPP_TEMPLATE_NAME=$(basename $(pwd))
+
+# required iapp section files
+export MKIAPP_SECTIONFILE_PRESENTATION=$(basename $(ls $(pwd)/presentation\.* 2>/dev/null || echo $(pwd)/presentation.tcl | head -1))
+export MKIAPP_SECTIONFILE_IMPLEMENTATION=$(basename $(ls $(pwd)/implementation\.* 2>/dev/null || echo $(pwd)/implementation.tcl | head -1))
+
+# optional iapp section files
+export MKIAPP_SECTIONFILE_HELP=$(basename $(ls $(pwd)/help\.* 2>/dev/null || echo $(pwd)/help.html | head -1))
+export MKIAPP_SECTIONFILE_MACRO=$(basename $(ls $(pwd)/macro\.* 2>/dev/null || echo $(pwd)/macro.tcl | head -1))
+
+# additional iapp template variables
+export MKIAPP_VAR_TMSH_VERSION=11.6.0
+export MKIAPP_VAR_MINVERSION=none
+export MKIAPP_VAR_MAXVERSION=none
+export MKIAPP_VAR_MODULES=""
+
+#################
+# Extensibility #
+#################
+#
+# Additional MKIAPP_VAR_ variables can be used to extend functionality.
+# Example:
+# Add the following line to .mkiapp_config:
+# export MKIAPP_VAR_DESCRIPTION="\"This is my iApp template\""
+#
+# Replace 'description none' with 'description <MKIAPP_VAR_DESCRIPTION>' in your
+# custom iApp Template file to replace set the description attribute in the
+# generated iApp Template.
+#
+# You can use runtime environment variables as well. Make sure it exists and
+# contains a value that is compatible with the iApp syntax rules.
+#
+#
+##########################
+# Advanced extensibility #
+##########################
+#
+# Furthermore by using MKIAPP_ENV_ variables it is possible to replace content
+# within the generated iApp Template code.
+#
+# Example:
+# Add <MKIAPP_ENV_PRESENTATION_GITHASH> to a section in the presentation definition:
+#    message githash "<MKIAPP_ENV_PRESENTATION_GITHASH>"
+#
+# Then run this on the command line:
+#  bash_prompt:> MKIAPP_ENV_PRESENTATION_GITHASH=\$(git log -1 --pretty=%h) \\
+#                    mkiapp > myiAppTemplate.tmpl
+#
+# This would replace <MKIAPP_ENV_PRESENTATION_GITHASH> with the output
+# of the command 'git log -1 --pretty=%h'
+#
+# You could also add this variable to the .mkiapp_config file to dynamically set
+# the variable whenever you run mkiapp:
+# export MKIAPP_ENV_PRESENTATION_GITHASH=\$(git log -1 --pretty=%h)
+
+EOF
+
+echo "initialized $program in current directory, review .mkiapp_config and update as needed."
+else
+    err_exit "cannot initialize in current directory, .mkiapp_config exists."
+fi
+}
+
+# init mkiapp function
+function mkinit-files() {
+    echo "creating: implementation.tcl"
+    touch implementation.tcl
+    echo "creating: presentation.tcl"
+    touch presentation.tcl
+    echo "creating: macro.tcl"
+    touch macro.tcl
+    echo "creating: help.html"
+    touch help.html
+}
+
+# generate iapp template function
+function mkiapptemplate() {
+templateFile=$1
+cmd=$catcmd
+if [[ ! -z $templateFile ]]; then
+    # custom template
+    if [[ ! -f "$templateFile" ]]; then
+        err_exit "specified template file '$templateFile' does not exist."
+    fi
+else
+    # builtin template
+    templateFile=$builtinTemplate
+    cmd=echo
+fi
+
+# load iapp config
+source $(pwd)/.mkiapp_config
+
+# generate template
+$cmd "$templateFile" | $awkcmd '\
+{ for (mkiappEnvVar in ENVIRON) { if (mkiappEnvVar ~ /MKIAPP_VAR_/) { gsub("<"mkiappEnvVar">", ENVIRON[mkiappEnvVar]); } } } \
+/<MKIAPP_IAPP_TEMPLATE_NAME>/ { gsub("<MKIAPP_IAPP_TEMPLATE_NAME>", ENVIRON["MKIAPP_IAPP_TEMPLATE_NAME"]); } \
+/<MKIAPP_SECTIONFILE_HELP>/ { if (ENVIRON["MKIAPP_SECTIONFILE_HELP"] != "") { while ((getline<ENVIRON["MKIAPP_SECTIONFILE_HELP"]) > 0) { print }; replace=1 } else { next } } \
+/<MKIAPP_SECTIONFILE_MACRO>/ { if (ENVIRON["MKIAPP_SECTIONFILE_MACRO"] != "") { while ((getline<ENVIRON["MKIAPP_SECTIONFILE_MACRO"]) > 0) { print }; replace=1 } else { next } } \
+/<MKIAPP_SECTIONFILE_PRESENTATION>/ { if (ENVIRON["MKIAPP_SECTIONFILE_PRESENTATION"] != "") { while ((getline<ENVIRON["MKIAPP_SECTIONFILE_PRESENTATION"]) > 0) { print }; replace=1 } else { next } } \
+/<MKIAPP_SECTIONFILE_IMPLEMENTATION>/ { if (ENVIRON["MKIAPP_SECTIONFILE_IMPLEMENTATION"] != "") { while ((getline<ENVIRON["MKIAPP_SECTIONFILE_IMPLEMENTATION"]) > 0) { print }; replace=1 } else { next } } \
+(!replace) { print }; replace=0;' \
+| $awkcmd '\
+{ for (mkiappEnvVar in ENVIRON) { if (mkiappEnvVar ~ /MKIAPP_FILE_/) { if ($0 ~ "<"mkiappEnvVar">") { while ((getline<ENVIRON[mkiappEnvVar]) > 0) { print }; replace=1 } } } } \
+(!replace) { print }; replace=0; \
+' \
+| $awkcmd '\
+{ for (mkiappEnvVar in ENVIRON) { if (mkiappEnvVar ~ /MKIAPP_ENV_/) { gsub("<"mkiappEnvVar">", ENVIRON[mkiappEnvVar]); } } } \
+{ print } \
+' || err_exit "failed to generate iApp template."
+}
+
+# usage function
+function show_usage() {
+    echo "usage: $program [init || init-section-files || showbuiltin"
+    echo "                || <customTemplateFile> || --help || --version]"
+    echo ""
+    echo "  init                   : create .mkiapp_config file in the current directory"
+    echo "  init-section-files     : creates empty section files for each iapp section"
+    echo "  showbuiltin            : show builtin template"
+    echo "  <customTemplateFile>   : generate iApp Template using custom template"
+    echo "  -h | --help            : this help message"
+    echo "  --version              : show version ($VERSION)"
+    echo ""
+    echo "examples:"
+    echo "# mkiapp > myiAppTemplate.tmpl"
+    echo "# mkiapp /custom_templates/iapp_template.tmpl > myiAppTemplate.tmpl"
+    echo ""
+}
+
+# main
+if [[ $# -gt 1 ]]; then
+    echo "Error: Too many arguments ($#)."
+    show_usage
+fi
+
+case "$1" in
+    init )                  mkinit; exit;;
+    init-section-files )    mkinit-files; exit;;
+    showbuiltin )           echo "$builtinTemplate"; exit;;
+    -h | --help | help )    show_usage; exit;;
+    --version | help )      echo "Version: $VERSION"; exit;;
+esac
+
+# check iapp config file exists
+if [[ ! -f $(pwd)/.mkiapp_config ]]; then
+    echo "Error: .mkiapp_config does not exist in current directory, run '$program init' first, see '$program --help' for help."
+    echo
+    show_usage
+    exit 1
+fi
+
+# generate iapp template
+mkiapptemplate $1;

@@ -1,0 +1,13 @@
+section main {
+    message info "This iApp creates an iRule which responds to every HTTP request."
+    choice version {"<MKIAPP_ENV_PRESENTATION_VERSION>"}
+    string irule_name display "xlarge"
+    choice status_code default "500" { "200", "400", "500", "501" }
+}
+text {
+    main "Main Configuration"
+    main.info "Info:"
+    main.version "iApp Version:"
+    main.irule_name "iRule Name:"
+    main.status_code "HTTP response status code to send:"
+}
