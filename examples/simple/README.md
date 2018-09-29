@@ -13,32 +13,29 @@ The iApp will create an iRule which responds to all HTTP requests with a simple 
 run `mkiapp init` in the directory to initialize your iApp project.
 
     > mkiapp init
-    initialized mkiapp in current directory, review .mkiapp_config and update as needed.
+    Initialized mkiapp in current working directory with settings:
+    
+    mkiapp config MKIAPP_IAPP_NAME "simple"
+    mkiapp config MKIAPP_IAPP_SKELETON "builtin"
+    mkiapp config MKIAPP_SECTIONFILE_PRESENTATION "presentation.tcl"
+    mkiapp config MKIAPP_SECTIONFILE_IMPLEMENTATION "implementation.tcl"
+    mkiapp config MKIAPP_SECTIONFILE_HELP "help.html"
+    mkiapp config MKIAPP_SECTIONFILE_MACRO "macro.tcl"
+    mkiapp config MKIAPP_VAR_TMSH_VERSION "11.6.0"
+    mkiapp config MKIAPP_VAR_MINVERSION "none"
+    mkiapp config MKIAPP_VAR_MAXVERSION "none"
+    mkiapp config MKIAPP_VAR_REQUIRED_MODULES ""
+    
+    Please review and modify as needed.
 
 ## Step 2: review and update config
 
-Now let's review the most important settings in the config file:
+All settings above are fine, all files have been detected successfully.
+Let's change the Name of the iApp though:
 
-    > head .mkiapp_config
-    # iapp template name
-    export MKIAPP_IAPP_TEMPLATE_NAME=simple
-
-    # required iapp section files
-    export MKIAPP_SECTIONFILE_PRESENTATION=presentation.tcl
-    export MKIAPP_SECTIONFILE_IMPLEMENTATION=implementation.tcl
-
-    # optional iapp section files
-    export MKIAPP_SECTIONFILE_HELP=help.html
-    export MKIAPP_SECTIONFILE_MACRO=macro.tcl
-
-As you can see, the directory name has been set as the template name.
-In this case this is not the best name, so let's change it.
-
-    > sed -i 's/MKIAPP_IAPP_TEMPLATE_NAME=.*/MKIAPP_IAPP_TEMPLATE_NAME=myFirstiApp/' .mkiapp_config
+    > mkiapp config MKIAPP_IAPP_NAME "myFirstiApp"
 
 We have just changed it to `myFirstiApp`.
-
-The rest of the settings are fine, as mkiapp init successfully detected all our files.
 
 ## Step 3: generate iApp Template
 

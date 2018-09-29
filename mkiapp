@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 
-VERSION="2018-09-22"
+VERSION="1.0"
+HOMEPAGE="https://github.com/simonkowallik/mkiapp"
+PROGRAM=$(basename "$0")
+CONFIGFILE=".mkiapp"
 
-program=$(basename $0)
-
-# builtin template
-builtinTemplate=$(cat <<'EOF'
+# builtin iapp skeleton
+_builtinSkeleton=$(cat <<'EOF'
 #TMSH-VERSION: <MKIAPP_VAR_TMSH_VERSION>
 
 cli admin-partitions {
     update-partition Common
 }
-sys application template /Common/<MKIAPP_IAPP_TEMPLATE_NAME> {
+sys application template /Common/<MKIAPP_IAPP_NAME> {
     actions {
         definition {
             html-help {
@@ -34,7 +35,7 @@ sys application template /Common/<MKIAPP_IAPP_TEMPLATE_NAME> {
     ignore-verification false
     requires-bigip-version-max <MKIAPP_VAR_MINVERSION>
     requires-bigip-version-min <MKIAPP_VAR_MAXVERSION>
-    requires-modules { <MKIAPP_VAR_MODULES> }
+    requires-modules { <MKIAPP_VAR_REQUIRED_MODULES> }
     signing-key none
     tmpl-checksum none
     tmpl-signature none
@@ -44,176 +45,290 @@ EOF
 
 # error function and error handling
 function err_exit() {
-    echo "Error: $1"
+    echo "Error: $*" 1>&2;
     exit 1
 }
 
-# check for awk and cat
-awkcmd=$(command -v awk || command -v gawk)
-catcmd=$(command -v cat)
+# check for required commands
+# TODO: what about: ls, cat, tee, echo, head, basename, touch, pwd
+awkcmd="$(command -v awk || command -v gawk)"
 if [[ -z $awkcmd ]]; then
-    err_exit "could not find 'awk' in \$PATH."
+    err_exit "Could not find 'awk' in \$PATH."
 fi
-if [[ -z $catcmd ]]; then
-    err_exit "could not find 'cat' in \$PATH."
-fi
+editcmd="$(command -v "$EDITOR" || command -v vim || command -v vi || command -v nano)"
 
 # init mkiapp function
 function mkinit() {
-if [[ ! -e $(pwd)/.mkiapp_config ]]; then
-cat <<EOF > $(pwd)/.mkiapp_config
-# iapp template name
-export MKIAPP_IAPP_TEMPLATE_NAME=$(basename $(pwd))
+export MKIAPP_IAPP_NAME=$(basename "$(pwd)")
+export MKIAPP_SECTIONFILE_PRESENTATION="$(ls presentation\.* 2>/dev/null || echo 'presentation.tcl' | head -1)"
+export MKIAPP_SECTIONFILE_IMPLEMENTATION="$(ls implementation\.* 2>/dev/null || echo 'implementation.tcl' | head -1)"
+export MKIAPP_SECTIONFILE_HELP="$(ls help\.* 2>/dev/null || echo 'help.html' | head -1)"
+export MKIAPP_SECTIONFILE_MACRO="$(ls macro\.* 2>/dev/null || echo 'macro.tcl' | head -1)"
+export MKIAPP_VAR_TMSH_VERSION="11.6.0"
+export MKIAPP_VAR_MINVERSION="none"
+export MKIAPP_VAR_MAXVERSION="none"
+export MKIAPP_VAR_REQUIRED_MODULES=""
 
-# required iapp section files
-export MKIAPP_SECTIONFILE_PRESENTATION=$(basename $(ls $(pwd)/presentation\.* 2>/dev/null || echo $(pwd)/presentation.tcl | head -1))
-export MKIAPP_SECTIONFILE_IMPLEMENTATION=$(basename $(ls $(pwd)/implementation\.* 2>/dev/null || echo $(pwd)/implementation.tcl | head -1))
+# custom or builtin iapp skeleton template
+if [[ ! -z "$_custom_skeleton" ]]; then
+    export MKIAPP_IAPP_SKELETON="$_custom_skeleton"
+else
+    export MKIAPP_IAPP_SKELETON=builtin
+fi
 
-# optional iapp section files
-export MKIAPP_SECTIONFILE_HELP=$(basename $(ls $(pwd)/help\.* 2>/dev/null || echo $(pwd)/help.html | head -1))
-export MKIAPP_SECTIONFILE_MACRO=$(basename $(ls $(pwd)/macro\.* 2>/dev/null || echo $(pwd)/macro.tcl | head -1))
+cat <<EOF > $CONFIGFILE
+# initialized with version: $VERSION
+# For documentation see: $HOMEPAGE
+#
+# iApp Name (target iApp)
+export MKIAPP_IAPP_NAME=$MKIAPP_IAPP_NAME
 
-# additional iapp template variables
-export MKIAPP_VAR_TMSH_VERSION=11.6.0
-export MKIAPP_VAR_MINVERSION=none
-export MKIAPP_VAR_MAXVERSION=none
-export MKIAPP_VAR_MODULES=""
+# iApp Skeleton Template (default: builtin)
+export MKIAPP_IAPP_SKELETON=$MKIAPP_IAPP_SKELETON
 
-#################
-# Extensibility #
-#################
-#
-# Additional MKIAPP_VAR_ variables can be used to extend functionality.
-# Example:
-# Add the following line to .mkiapp_config:
-# export MKIAPP_VAR_DESCRIPTION="\"This is my iApp template\""
-#
-# Replace 'description none' with 'description <MKIAPP_VAR_DESCRIPTION>' in your
-# custom iApp Template file to replace set the description attribute in the
-# generated iApp Template.
-#
-# You can use runtime environment variables as well. Make sure it exists and
-# contains a value that is compatible with the iApp syntax rules.
-#
-#
-##########################
-# Advanced extensibility #
-##########################
-#
-# Furthermore by using MKIAPP_ENV_ variables it is possible to replace content
-# within the generated iApp Template code.
-#
-# Example:
-# Add <MKIAPP_ENV_PRESENTATION_GITHASH> to a section in the presentation definition:
-#    message githash "<MKIAPP_ENV_PRESENTATION_GITHASH>"
-#
-# Then run this on the command line:
-#  bash_prompt:> MKIAPP_ENV_PRESENTATION_GITHASH=\$(git log -1 --pretty=%h) \\
-#                    mkiapp > myiAppTemplate.tmpl
-#
-# This would replace <MKIAPP_ENV_PRESENTATION_GITHASH> with the output
-# of the command 'git log -1 --pretty=%h'
-#
-# You could also add this variable to the .mkiapp_config file to dynamically set
-# the variable whenever you run mkiapp:
-# export MKIAPP_ENV_PRESENTATION_GITHASH=\$(git log -1 --pretty=%h)
+# required Section Skeleton Files (filenames)
+export MKIAPP_SECTIONFILE_PRESENTATION=$MKIAPP_SECTIONFILE_PRESENTATION
+export MKIAPP_SECTIONFILE_IMPLEMENTATION=$MKIAPP_SECTIONFILE_IMPLEMENTATION
 
+# optional Section Skeleton Files (filenames)
+export MKIAPP_SECTIONFILE_HELP=$MKIAPP_SECTIONFILE_HELP
+export MKIAPP_SECTIONFILE_MACRO=$MKIAPP_SECTIONFILE_MACRO
+
+# iApp Skeleton Template Variables
+export MKIAPP_VAR_TMSH_VERSION=$MKIAPP_VAR_TMSH_VERSION
+export MKIAPP_VAR_MINVERSION=$MKIAPP_VAR_MINVERSION
+export MKIAPP_VAR_MAXVERSION=$MKIAPP_VAR_MAXVERSION
+export MKIAPP_VAR_REQUIRED_MODULES=$MKIAPP_VAR_REQUIRED_MODULES
 EOF
 
-echo "initialized $program in current directory, review .mkiapp_config and update as needed."
-else
-    err_exit "cannot initialize in current directory, .mkiapp_config exists."
-fi
+echo "Initialized $PROGRAM in current working directory with settings:"
+echo
+echo "$PROGRAM config MKIAPP_IAPP_NAME \"$MKIAPP_IAPP_NAME\""
+echo "$PROGRAM config MKIAPP_IAPP_SKELETON \"$MKIAPP_IAPP_SKELETON\""
+echo "$PROGRAM config MKIAPP_SECTIONFILE_PRESENTATION \"$MKIAPP_SECTIONFILE_PRESENTATION\""
+echo "$PROGRAM config MKIAPP_SECTIONFILE_IMPLEMENTATION \"$MKIAPP_SECTIONFILE_IMPLEMENTATION\""
+echo "$PROGRAM config MKIAPP_SECTIONFILE_HELP \"$MKIAPP_SECTIONFILE_HELP\""
+echo "$PROGRAM config MKIAPP_SECTIONFILE_MACRO \"$MKIAPP_SECTIONFILE_MACRO\""
+echo "$PROGRAM config MKIAPP_VAR_TMSH_VERSION \"$MKIAPP_VAR_TMSH_VERSION\""
+echo "$PROGRAM config MKIAPP_VAR_MINVERSION \"$MKIAPP_VAR_MINVERSION\""
+echo "$PROGRAM config MKIAPP_VAR_MAXVERSION \"$MKIAPP_VAR_MAXVERSION\""
+echo "$PROGRAM config MKIAPP_VAR_REQUIRED_MODULES \"$MKIAPP_VAR_REQUIRED_MODULES\""
+echo
+echo "Please review and modify as needed."
+echo
 }
 
 # init mkiapp function
-function mkinit-files() {
-    echo "creating: implementation.tcl"
-    touch implementation.tcl
-    echo "creating: presentation.tcl"
-    touch presentation.tcl
-    echo "creating: macro.tcl"
-    touch macro.tcl
-    echo "creating: help.html"
-    touch help.html
+function mkinit_files() {
+    touch implementation.tcl && echo "implementation.tcl"
+    touch presentation.tcl && echo "presentation.tcl"
+    touch macro.tcl && echo "macro.tcl"
+    touch help.html && echo "help.html"
+}
+# 
+function mkiapp_config() {
+    if [[ "$1" == "" ]]; then
+        # TODO: should I format it?
+        cat "$CONFIGFILE"
+    elif [[ "$1" == "edit" ]]; then
+        # start editor
+        if [[ "$editcmd" == "" ]]; then
+            err_exit "No editor found. Use your favorite \$EDITOR to edit ${CONFIGFILE}."
+        else
+            $editcmd "$CONFIGFILE"
+        fi
+    elif [[ "$1" != "" &&  "$2" == "" ]]; then
+        # print value for $1/<key>
+        $awkcmd -v pattern="^export ${1}=" '{ if ($0 ~ pattern) {gsub(pattern, ""); print} }' "$CONFIGFILE"
+    elif [[ "$1" != "" &&  "$2" != "" ]]; then
+        # set $1/<key> to $2/<value>
+        # check if variable defined &AND& replace |OR| add to end
+        $awkcmd -v pattern="^export ${1}=.*\$" 'BEGIN {code=1} { if ($0 ~ pattern) {code=0} } END {exit code}' "$CONFIGFILE" \
+            && $awkcmd -v pattern="^export ${1}=.*\$" -v value="export ${1}=\"${2}\"" \
+                '{ if ($0 ~ pattern) {gsub(pattern, value)} print }' \
+                "$CONFIGFILE" | tee "$CONFIGFILE" >/dev/null \
+            || echo "export ${1}=\"${2}\"" >> "$CONFIGFILE"
+    else
+        # this should never happen
+        err_exit "Cannot parse options <key>='$1' <value>='$2'."
+    fi
 }
 
-# generate iapp template function
-function mkiapptemplate() {
-templateFile=$1
-cmd=$catcmd
-if [[ ! -z $templateFile ]]; then
-    # custom template
-    if [[ ! -f "$templateFile" ]]; then
-        err_exit "specified template file '$templateFile' does not exist."
-    fi
-else
-    # builtin template
-    templateFile=$builtinTemplate
-    cmd=echo
+function print_help() {
+    printf 'usage: %s [init] [init-files] [showbuiltin] [config [edit] [<key>] [<key> <value>]] [-t|--template <file>] [--(no-)impl|--(no-)implementation] [--(no-)apl|--(no-)presentation] [--(no-)macro] [--(no-)html] [-h|--help] [-v|--version]\n' "$PROGRAM"
+    printf '%20s    %s\n' "init:" "initialize current working directory for $PROGRAM"
+    printf '%20s    %s\n' "init-files:" "create Section Skeleton Files in current working directory"
+    printf '%20s    %s\n' "showbuiltin:" "print builtin iApp Skeleton Template"
+    printf '%20s    %s\n' "config:" "no arguments: prints full configuration"
+    printf '%24s%s\n' "" "edit: opens configuration in \$EDITOR"
+    printf '%24s%s\n' "" "<key>: prints its value"
+    printf '%24s%s\n' "" "<key> <value>: sets <key> to <value>"
+    printf '%20s    %s\n' "-t,--template:" "use <file> as iApp Skeleton Template instead of 'builtin'"
+    printf '%20s    %s\n' "--implementation:" "only includes implementation Section Skeleton File in generated iApp"
+    printf '%20s    %s\n' "--no-implementation:" "explictly excludes implementation Section Skeleton File from generated iApp"
+    printf '%20s    %s\n' "--presentation:" "only includes presentation Section Skeleton File in generated iApp"
+    printf '%20s    %s\n' "--no-presentation:" "explictly excludes presentation Section Skeleton File from generated iApp"
+    printf '%20s    %s\n' "--macro:" "only includes macro Section Skeleton File in generated iApp"
+    printf '%20s    %s\n' "--no-macro:" "explictly excludes macro Section Skeleton File from generated iApp"
+    printf '%20s    %s\n' "--html:" "only includes html-help Section Skeleton File in generated iApp"
+    printf '%20s    %s\n' "--no-html:" "only includes html-help Section Skeleton File from generated iApp"
+    printf '%20s    %s\n' "-h,--help:" "prints this help"
+    printf '%20s    %s\n' "-v,--version:" "prints version"
+    printf '\n%s\n' "$PROGRAM simplifies the process of combining separate source files into an iApp Template."
+    printf '%s\n' "Start with '$PROGRAM init' to initialize the current working directory. Executing '$PROGRAM' will generate an iApp."
+    printf '\n%s\n\n' "See $HOMEPAGE for documentation."
+}
+
+function parse_cmd() {
+    while test $# -gt 0
+    do
+        _arg="$1"
+        case "$_arg" in
+            -t|--template)
+                test $# -lt 2 && err_exit "Missing value for argument '$_arg'."
+                _custom_skeleton="$2"
+                if [[ ! -f "$_custom_skeleton" ]]; then
+                    err_exit "iApp Skeleton Template '$_iAppSkeleton' specified by argument '$_arg' does not exist."
+                fi
+                shift
+                ;;
+            --no-implementation|--implementation|--no-impl|--impl)
+                if [[ "${1:0:5}" == "--no-" ]]; then
+                    _include_impl="off"
+                else
+                    _include_impl="on"
+                    _include_all="off"
+                fi
+                ;;
+            --no-presentation|--presentation|--no-apl|--apl)
+                if [[ "${1:0:5}" == "--no-" ]]; then
+                    _include_apl="off"
+                else
+                    _include_apl="on"
+                    _include_all="off"
+                fi
+                ;;
+            --no-macro|--macro)
+                if [[ "${1:0:5}" == "--no-" ]]; then
+                    _include_macro="off"
+                else
+                    _include_macro="on"
+                    _include_all="off"
+                fi
+                ;;
+            --no-html|--html)
+                if [[ "${1:0:5}" == "--no-" ]]; then
+                    _include_html="off"
+                else
+                    _include_html="on"
+                    _include_all="off"
+                fi
+                ;;
+            init)
+                test $# -gt 1 && err_exit "Too many arugments '$_arg'."
+                if [[ $_initialized == "false" ]]; then
+                    mkinit
+                    exit 0
+                else
+                    err_exit "$PROGRAM already initialized in current working directory."
+                fi
+                ;;
+            init-files)
+                test $# -gt 1 && err_exit "Too many arugments '$_arg'."
+                mkinit_files
+                exit 0
+                ;;
+            showbuiltin)
+                test $# -gt 1 && err_exit "Too many arugments '$_arg'."
+                echo "$_builtinSkeleton"
+                exit 0
+                ;;
+            config)
+                test $# -gt 3 && err_exit "Too many arugments '$_arg'."
+                if [[ $_initialized == "false" ]]; then
+                    err_exit "$PROGRAM not initialized in current working directory. Please run '$PROGRAM init' first."
+                else
+                    mkiapp_config "$2" "$3"
+                    exit 0
+                fi
+                ;;
+            -h|--help)
+                print_help
+                exit 0
+                ;;
+            -v|--version)
+                echo "$PROGRAM version $VERSION"
+                exit 0
+                ;;
+            *)
+                print_help
+                err_exit "Unexpected argument '$1'"
+                exit 1
+                ;;
+        esac
+        shift
+    done
+}
+
+### main program code
+
+# load mkiapp config if it exists & set _initialized
+source $CONFIGFILE 2>/dev/null && _initialized="true" || _initialized="false"
+
+# include all section files by default - might be overwritten by command line arguments
+_include_all="on"
+
+# parse command line arguments
+parse_cmd "$@"
+
+# error if directory not initialized
+if [[ $_initialized == "false" ]]; then
+    print_help
+    echo
+    err_exit "$PROGRAM not initialized in current working directory. Please run '$PROGRAM init' first."
 fi
 
-# load iapp config
-source $(pwd)/.mkiapp_config
+# default to builtin skeleton
+_iAppSkeleton=$_builtinSkeleton
+_cmd="echo"
+
+# check for custom skeletion
+if [[ ! -z "$_custom_skeleton" ]]; then
+    # custom iapp skeleton specified on command line
+    _iAppSkeleton="$_custom_skeleton"
+    _cmd="cat"
+elif [[ "$MKIAPP_IAPP_SKELETON" != "builtin" ]]; then
+    # non-default iapp skeleton in configuration file
+    _iAppSkeleton="$MKIAPP_IAPP_SKELETON"
+    _cmd="cat"
+    if [[ ! -f "$_iAppSkeleton" ]]; then
+        err_exit "iApp Skeleton Template 'MKIAPP_IAPP_SKELETON=$_iAppSkeleton' does not exist."
+    fi
+fi
+
+# determine which section files to include
+if [[ $_include_all == "on" ]]; then
+    test "$_include_impl" == "off" || _include_impl="on"
+    test "$_include_apl" == "off" || _include_apl="on"
+    test "$_include_macro" == "off" || _include_macro="on"
+    test "$_include_html" == "off" || _include_html="on"
+elif [[ $_include_all == "off" ]]; then
+    test "$_include_impl" == "on" || _include_impl="off"
+    test "$_include_apl" == "on" || _include_apl="off"
+    test "$_include_macro" == "on" || _include_macro="off"
+    test "$_include_html" == "on" || _include_html="off"
+fi
 
 # generate template
-$cmd "$templateFile" | $awkcmd '\
-{ for (mkiappEnvVar in ENVIRON) { if (mkiappEnvVar ~ /MKIAPP_VAR_/) { gsub("<"mkiappEnvVar">", ENVIRON[mkiappEnvVar]); } } } \
-/<MKIAPP_IAPP_TEMPLATE_NAME>/ { gsub("<MKIAPP_IAPP_TEMPLATE_NAME>", ENVIRON["MKIAPP_IAPP_TEMPLATE_NAME"]); } \
-/<MKIAPP_SECTIONFILE_HELP>/ { if (ENVIRON["MKIAPP_SECTIONFILE_HELP"] != "") { while ((getline<ENVIRON["MKIAPP_SECTIONFILE_HELP"]) > 0) { print }; replace=1 } else { next } } \
-/<MKIAPP_SECTIONFILE_MACRO>/ { if (ENVIRON["MKIAPP_SECTIONFILE_MACRO"] != "") { while ((getline<ENVIRON["MKIAPP_SECTIONFILE_MACRO"]) > 0) { print }; replace=1 } else { next } } \
-/<MKIAPP_SECTIONFILE_PRESENTATION>/ { if (ENVIRON["MKIAPP_SECTIONFILE_PRESENTATION"] != "") { while ((getline<ENVIRON["MKIAPP_SECTIONFILE_PRESENTATION"]) > 0) { print }; replace=1 } else { next } } \
-/<MKIAPP_SECTIONFILE_IMPLEMENTATION>/ { if (ENVIRON["MKIAPP_SECTIONFILE_IMPLEMENTATION"] != "") { while ((getline<ENVIRON["MKIAPP_SECTIONFILE_IMPLEMENTATION"]) > 0) { print }; replace=1 } else { next } } \
+$_cmd "$_iAppSkeleton" \
+| $awkcmd -v _include_impl=$_include_impl -v _include_apl=$_include_apl -v _include_macro=$_include_macro -v _include_html=$_include_html \
+'{ for (mkiappEnvVar in ENVIRON) { if (mkiappEnvVar ~ /MKIAPP_VAR_/) { gsub("<"mkiappEnvVar">", ENVIRON[mkiappEnvVar]); } } } \
+/<MKIAPP_IAPP_NAME>/ { gsub("<MKIAPP_IAPP_NAME>", ENVIRON["MKIAPP_IAPP_NAME"]); } \
+/<MKIAPP_SECTIONFILE_HELP>/ { if (ENVIRON["MKIAPP_SECTIONFILE_HELP"] != "" && _include_html == "on") { while ((getline<ENVIRON["MKIAPP_SECTIONFILE_HELP"]) > 0) { print }; replace=1 } else { next } } \
+/<MKIAPP_SECTIONFILE_MACRO>/ { if (ENVIRON["MKIAPP_SECTIONFILE_MACRO"] != "" && _include_macro == "on") { while ((getline<ENVIRON["MKIAPP_SECTIONFILE_MACRO"]) > 0) { print }; replace=1 } else { next } } \
+/<MKIAPP_SECTIONFILE_PRESENTATION>/ { if (ENVIRON["MKIAPP_SECTIONFILE_PRESENTATION"] != "" && _include_apl == "on") { while ((getline<ENVIRON["MKIAPP_SECTIONFILE_PRESENTATION"]) > 0) { print }; replace=1 } else { next } } \
+/<MKIAPP_SECTIONFILE_IMPLEMENTATION>/ { if (ENVIRON["MKIAPP_SECTIONFILE_IMPLEMENTATION"] != "" && _include_impl == "on") { while ((getline<ENVIRON["MKIAPP_SECTIONFILE_IMPLEMENTATION"]) > 0) { print }; replace=1 } else { next } } \
 (!replace) { print }; replace=0;' \
-| $awkcmd '\
-{ for (mkiappEnvVar in ENVIRON) { if (mkiappEnvVar ~ /MKIAPP_FILE_/) { if ($0 ~ "<"mkiappEnvVar">") { while ((getline<ENVIRON[mkiappEnvVar]) > 0) { print }; replace=1 } } } } \
-(!replace) { print }; replace=0; \
-' \
-| $awkcmd '\
-{ for (mkiappEnvVar in ENVIRON) { if (mkiappEnvVar ~ /MKIAPP_ENV_/) { gsub("<"mkiappEnvVar">", ENVIRON[mkiappEnvVar]); } } } \
-{ print } \
-' || err_exit "failed to generate iApp template."
-}
-
-# usage function
-function show_usage() {
-    echo "usage: $program [init || init-section-files || showbuiltin"
-    echo "                || <customTemplateFile> || --help || --version]"
-    echo ""
-    echo "  init                   : create .mkiapp_config file in the current directory"
-    echo "  init-section-files     : creates empty section files for each iapp section"
-    echo "  showbuiltin            : show builtin template"
-    echo "  <customTemplateFile>   : generate iApp Template using custom template"
-    echo "  -h | --help            : this help message"
-    echo "  --version              : show version ($VERSION)"
-    echo ""
-    echo "examples:"
-    echo "# mkiapp > myiAppTemplate.tmpl"
-    echo "# mkiapp /custom_templates/iapp_template.tmpl > myiAppTemplate.tmpl"
-    echo ""
-}
-
-# main
-if [[ $# -gt 1 ]]; then
-    echo "Error: Too many arguments ($#)."
-    show_usage
-fi
-
-case "$1" in
-    init )                  mkinit; exit;;
-    init-section-files )    mkinit-files; exit;;
-    showbuiltin )           echo "$builtinTemplate"; exit;;
-    -h | --help | help )    show_usage; exit;;
-    --version | help )      echo "Version: $VERSION"; exit;;
-esac
-
-# check iapp config file exists
-if [[ ! -f $(pwd)/.mkiapp_config ]]; then
-    echo "Error: .mkiapp_config does not exist in current directory, run '$program init' first, see '$program --help' for help."
-    echo
-    show_usage
-    exit 1
-fi
-
-# generate iapp template
-mkiapptemplate $1;
+| $awkcmd '{ for (mkiappEnvVar in ENVIRON) { if (mkiappEnvVar ~ /MKIAPP_FILE_/) { if ($0 ~ "<"mkiappEnvVar">") { while ((getline<ENVIRON[mkiappEnvVar]) > 0) { print }; replace=1 } } } } (!replace) { print }; replace=0;' \
+| $awkcmd '{ for (mkiappEnvVar in ENVIRON) { if (mkiappEnvVar ~ /MKIAPP_ENV_/) { gsub("<"mkiappEnvVar">", ENVIRON[mkiappEnvVar]); } } } { print }' \
+|| err_exit "Failed to generate iApp template."

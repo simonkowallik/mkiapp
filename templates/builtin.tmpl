@@ -3,7 +3,7 @@
 cli admin-partitions {
     update-partition Common
 }
-sys application template /Common/<MKIAPP_IAPP_TEMPLATE_NAME> {
+sys application template /Common/<MKIAPP_IAPP_NAME> {
     actions {
         definition {
             html-help {
@@ -26,7 +26,7 @@ sys application template /Common/<MKIAPP_IAPP_TEMPLATE_NAME> {
     ignore-verification false
     requires-bigip-version-max <MKIAPP_VAR_MINVERSION>
     requires-bigip-version-min <MKIAPP_VAR_MAXVERSION>
-    requires-modules { <MKIAPP_VAR_MODULES> }
+    requires-modules { <MKIAPP_VAR_REQUIRED_MODULES> }
     signing-key none
     tmpl-checksum none
     tmpl-signature none

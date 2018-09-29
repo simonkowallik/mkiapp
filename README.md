@@ -1,91 +1,233 @@
 # Intro
-mkiapp simplifies the process of "putting the pieces together" when writing iApps.
-It combines separate files for presentation, implementation, macro and help section ("section files") into a iApp Template file, which can be loaded via the WebUI or tmsh.
+`mkiapp` simplifies the process of "putting the pieces together" when developing iApps.
+When developing larger iApps you most likely want to split the separate sections into files and not use the WebUI to develop it either.
+`mkiapp` combines separate files for presentation, implementation, macro and help section into a target iApp, which can be loaded via the WebUI or tmsh. It provides advanced features to generate iApps and dynamically replace data within it.
 
-`mkiapp` itself relies `bash`, `awk` and `cat` - common tools available on all platforms nowadays.
+`mkiapp` itself relies on `bash`, `awk` and other common command line tools - available on most platforms.
 
-# Demo
-Watch the [Youtube Demo](https://youtu.be/eBpsP71XFl8).
 
+# Not convinced? Watch this demo!
+[Youtube](https://youtu.be/eBpsP71XFl8)
+
+    # TODO: UPDATE! #
 [![Youtube Demo Video](https://img.youtube.com/vi/eBpsP71XFl8/0.jpg)](https://youtu.be/eBpsP71XFl8)
 
+# Installation
+
+## Manual
+ Copy the `mkiapp` file to any place in your `$PATH`. You can also fetch a [release](https://github.com/simonkowallik/mkiapp/releases) .zip or .tar.gz instead.
+
+## Homebrew / Linuxbrew
+You can install `mkiapp` via homebrew and linuxbrew.
+
+    brew install simonkowallik/f5/mkiapp
+
+If you want to receive updates when running `brew update` add my tap with `brew tap simonkowallik/f5`.
+
 # Details
-To generate the iApp Template mkiapp either uses a builtin template or a custom template. The builtin template will be fine for most use-cases.
+To generate the target iApp, which can be used on an F5 BIG-IP device, `mkiapp` uses a so called `iApp Skeleton Template`.
+The `iApp Skeleton Template` can be loaded from a file or the `builtin iApp Skeleton Template` is used, which should be sufficient for most use-cases.
+`mkiapp` reads its settings from the `.mkiapp configuration file` in the current working directory (similar to `git`).
 
-This template describes all attributes of the generated iApp Template and contains placeholders which are either replaced by the content of the section files or specific values of environment variables.
+## The iApp Skeleton Template
+The `iApp Skeleton Template` contains the general structure of a target iApp. `<placeholders>` are used within the `iApp Skeleton Template` to include `Section Skeleton Files` and `iApp Skeleton Template Variables`.
 
-mkiapp uses a configuration file (`.mkiapp_config`) which contains various variables.
-The section filenames and location is defined in the configuration file, as well as various variables (target iApp Template Name, minimum/maximum TMOS version and required modules).
+You can create your own `iApp Skeleton Template`, see further below if required.
+
+## The Section Skeleton Files
+The `Section Skeleton Files` reference to a file on the filesystem. This file content is included into the `iApp Skeleton Template` to fill four iApp Sections:
+- presentation (required)
+- implementation (required)
+- macro (optional / depends on use-case)
+- html-help (optional)
+
+`Section Skeleton Files` are technically represented by a shell variable, the variable content is the file on the filesystem.
+
+## The Skeleton Template Variables
+`Skeleton Template Variables` define a single value within the `iApp Skeleton Template`, for example `Skeleton Template Variables` are used to define:
+- iApp Name
+- Minimum BIG-IP Version
+- Minimum BIG-IP Version
+- Required Modules (e.g. LTM, AFM)
+
+Technically `Skeleton Template Variables` are shell variables.
+
+You can define additional `Skeleton Template Variables` for use in custom `iApp Skeleton Templates` if needed.
+
+## < placeholders >
+`Section Skeleton Files` and `Skeleton Template Variables` have a corresponding `<placeholder>` within the `iApp Skeleton Template`.
+
+The `<placeholder>` is replaced by the actual value of `Skeleton Template Variable` or content of the `Section Skeleton File`.
+
+The following table maps the default `<placeholders>` to the `Skeleton Template Variables` and `Section Skeleton Files`.
+
+| < placeholder >                   | shell variable name              |variable value    |
+|-----------------------------------|----------------------------------|------------------|
+|<MKIAPP_IAPP_NAME>                 |$MKIAPP_IAPP_NAME                 |MyHTTPSiApp       |
+|<MKIAPP_VAR_MINVERSION>            |$MKIAPP_VAR_MINVERSION            |11.6.0            |
+|<MKIAPP_VAR_MAXVERSION>            |$MKIAPP_VAR_MAXVERSION            |13.1.1            |
+|<MKIAPP_VAR_REQUIRED_MODULES>      |$MKIAPP_VAR_REQUIRED_MODULES      |ltm               |
+|<MKIAPP_VAR_TMSH_VERSION>          |$MKIAPP_VAR_TMSH_VERSION          |11.6.0            |
+|<MKIAPP_SECTIONFILE_PRESENTATION>  |$MKIAPP_SECTIONFILE_PRESENTATION  |presentation.tcl  |
+|<MKIAPP_SECTIONFILE_IMPLEMENTATION>|$MKIAPP_SECTIONFILE_IMPLEMENTATION|implementation.tcl|
+|<MKIAPP_SECTIONFILE_MACRO>         |$MKIAPP_SECTIONFILE_MACRO         |macro.tcl         |
+|<MKIAPP_SECTIONFILE_HELP>          |$MKIAPP_SECTIONFILE_HELP          |help.html         |
+
+With exception to `<>` the `<placeholder>` names and `Skeleton Template Variable` names are the same.
+
+The variables are defined and read from the `.mkiapp configuration file`. 
+
+## .mkiapp configuration file
+The `.mkiapp configuration file` can be created by running `mkiapp init` and contains the shell variables above.
+It further allows to customise `mkiapp` behaviour.
+
+When `mkiapp` runs, it first checks for `.mkiapp` in the current working directory and will complain if it doesn't exist.
+Here is an example `.mkiapp` file, which can be printed by running `mkiapp config`:
+
+    # initialized with version: 1.0
+    # For documentation see: https://github.com/simonkowallik/mkiapp
+    #
+    # iApp Name (target iApp)
+    export MKIAPP_IAPP_NAME=myiAppName
+    
+    # iApp Skeleton Template (default: builtin)
+    export MKIAPP_IAPP_SKELETON=builtin
+    
+    # required Section Skeleton Files (filenames)
+    export MKIAPP_SECTIONFILE_PRESENTATION=presentation.tcl
+    export MKIAPP_SECTIONFILE_IMPLEMENTATION=implementation.tcl
+    
+    # optional Section Skeleton Files (filenames)
+    export MKIAPP_SECTIONFILE_HELP=help.html
+    export MKIAPP_SECTIONFILE_MACRO=macro.tcl
+    
+    # iApp Skeleton Template Variables
+    export MKIAPP_VAR_TMSH_VERSION=11.6.0
+    export MKIAPP_VAR_MINVERSION=none
+    export MKIAPP_VAR_MAXVERSION=none
+    export MKIAPP_VAR_REQUIRED_MODULES=
+
+When you run `mkiapp init` it will try to guess the file names for all four `Section Skeleton Files`, otherwise it will use the default names (see above). Non-existing files are ignored when `mkiapp` generates an iApp.
+
+`mkiapp config` lets you interact with the configuration easily, it allows to read specific variables as well as set new values for existing variables or add new ones.
+`mkiapp config edit` opens `.mkiapp` in your `$EDITOR`.
+
+Based on the configuration above, `mkiapp config MKIAPP_IAPP_NAME` would print `myiAppName` and `mkiapp config MKIAPP_IAPP_NAME myHTTPiApp` would set the variable value to `myHTTPiApp`.
+
+Of course you can just use your favorite editor to modify the file.
 
 # Usage
-`mkiapp --help` will provide you with help.
+`mkiapp --help` will provide you with the following help.
 
-`mkiapp init` will create the `.mkiapp_config` config file in the current directory for you. It will try to guess the section file names based on the content of the directory and use the current directory name as the iApp Template Name. You should check and modify settings afterwards.
+    usage: mkiapp [init] [init-files] [showbuiltin] [config [edit] [<key>] [<key> <value>]] [-t|--template <file>] [--(no-)impl|--(no-)implementation] [--(no-)apl|--(no-)presentation] [--(no-)macro] [--(no-)html] [-h|--help] [-v|--version]
+                   init:    initialize current working directory for mkiapp
+             init-files:    create Section Skeleton Files in current working directory
+            showbuiltin:    print builtin iApp Skeleton Template
+                 config:    no arguments: prints full configuration
+                            edit: opens configuration in $EDITOR
+                            <key>: prints its value
+                            <key> <value>: sets <key> to <value>
+          -t,--template:    use <file> as iApp Skeleton Template instead of 'builtin'
+       --implementation:    only includes implementation Section Skeleton File in generated iApp
+    --no-implementation:    explictly excludes implementation Section Skeleton File from generated iApp
+         --presentation:    only includes presentation Section Skeleton File in generated iApp
+      --no-presentation:    explictly excludes presentation Section Skeleton File from generated iApp
+                --macro:    only includes macro Section Skeleton File in generated iApp
+             --no-macro:    explictly excludes macro Section Skeleton File from generated iApp
+                 --html:    only includes html-help Section Skeleton File in generated iApp
+              --no-html:    only includes html-help Section Skeleton File from generated iApp
+              -h,--help:    prints this help
+           -v,--version:    prints version
+    
+    mkiapp simplifies the process of combining separate source files into an iApp Template.
+    Start with 'mkiapp init' to initialize the current working directory. Executing 'mkiapp' will generate an iApp.
 
-`mkiapp init-section-files` creates all section files for you - these are skeletons and do not contain any content. It will not modify or delete any file content in case files exist.
+You start with `mkiapp init`, as outlined earlier. If you start a new project you can use `mkiapp init-files` to create the `Section Skeleton Files` in the current working directory (don't worry, existing files will not be overwritten).
 
-Once you have you files ready and updated with content, you can create you iApp Template.
-Running `mkiapp` will print the generated iApp Template on the console (STDOUT), you probably want to redirect the output to a file `mkiapp > myiAppTemplate.tmpl`.
+Once you have you files ready and updated with content, you can generate your own iApp.
+Running `mkiapp` will use the `iApp Skeleton Template`, include all `Section Skeleton Files` and `Skeleton Template Variables` and output your own iApp Template on the console (`STDOUT`).
+So you probably want to redirect the output to a file like this `mkiapp > myiAppTemplate.tmpl`.
 
-To use a custom template, specify it as an argument: `mkiapp /iapp_templates/template.tmpl > myiAppTemplate.tmpl`.
+If you use a custom `iApp Skeleton Template`, you can specify it with `-t | --template`: `mkiapp --template /iapp_templates/template.tmpl > myiAppTemplate.tmpl`.
+You could also set it permanently with `mkiapp config MKIAPP_IAPP_SKELETON /iapp_templates/template.tmpl`, which would update the `.mkiapp configuration file`.
 
-*Note:* You have to run mkiapp in the directory of the section files.
+There are a couple of other options available to generate your iApp. `--implementation`, `--presentation`, `--macro` and `--html` allow you to specifically generate the iApp with the selected sections only, all unspecified sections would be empty. This can be very useful when troubleshooting syntax errors, for example when you are not sure which section(s) contains them.
+`--no-implementation`, `--no-presentation`, `--no-macro` and `--no-html` on the other hand allow you specifically exclude the specified section. 
+
+> ***Note:*** You always have to run `mkiapp` in the directory you "initialised" (contains the `.mkiapp configuration file`), similar to `git`.
 
 # Examples
-Check out the examples folder to learn how to use mkiapp.
+Two examples are located in the examples folder of this repository to demonstrate the use of `mkiapp`.
 
-# Extensibility and customization
-The mkiapp functionality can be further extended.
 
-Additional `MKIAPP_VAR_` variables can be used in iApp template attributes.
+# Extensibility and customisation
+The `mkiapp` functionality can be further extended. `mkiapp` uses the bash `source` command to include `.mkiapp`, which gives you a lot of power and control over `mkiapp`.
+
+A simple use-case could be to add additional `MKIAPP_VAR_` variables when you need a custom `iApp Skeleton Template`.
+
+### Example
+If you want to add the a description to the generated iApp Template you could come up with a new variable, let's say `MKIAPP_VAR_DESCRIPTION`. The corresponding placeholder would be `<MKIAPP_VAR_DESCRIPTION>`.
+
+Let's first add the variable with a static value:
+`mkiapp config MKIAPP_VAR_DESCRIPTION "This is my iApp template description"`
+
+Replace `description none` with `description <MKIAPP_VAR_DESCRIPTION>` in your custom`iApp Skeleton Template` file and you are done.
+
+If you need a more dynamic description you could set `MKIAPP_VAR_DESCRIPTION` to another variable name, like so:
+`mkiapp config MKIAPP_VAR_DESCRIPTION "\$env_iapp_desc"`.
+`mkiapp` would then rely on the existence of `$env_iapp_desc` when it generates the iApp to fill the description field.
+
+Another option would be to not configure `MKIAPP_VAR_DESCRIPTION` in the `.mkiapp configuration file` and instead always provide it when running `mkiapp`.
+
+> ***Important:*** No matter which technique you decide on using, make sure the resulting value in the iApp template follows the iApp syntax.
+
+## More advanced customisation
+Furthermore `$MKIAPP_ENV_` variables allow content replacement within the generated iApp. This allows you to dynamically change content which is included form the `Section Skeleton Files` during the `mkiapp` iApp generation process.
 
 ### Example
 
-Add the following line to `.mkiapp_config`:
-
-`export MKIAPP_VAR_DESCRIPTION="\"This is my iApp template\""`
-
-Replace `description none` with `description <MKIAPP_VAR_DESCRIPTION>` in your custom iApp Template file to replace set the description attribute in the generated iApp Template.
-
-You can use runtime environment variables on your shell as well. Make sure they exist and contains a value that is compatible with the iApp syntax rules.
-
-## Advanced customization
-
-Furthermore `MKIAPP_ENV_` variables allow content replacement within the generated iApp Template code.
-This allows you to dynamically change content within section files during the mkiapp process.
-
-### Example
-
-Add `<MKIAPP_ENV_PRESENTATION_GITHASH>` placeholder to a section in the presentation definition:
+Add `<MKIAPP_ENV_PRESENTATION_GITHASH>` placeholder to a section in the presentation `Section Skeleton File`:
 
     message githash "<MKIAPP_ENV_PRESENTATION_GITHASH>"
 
-Specify the environment variable when running mkiapp:
+Use one of the techniques outlined above to set the corresponding variable. For example:
 
-    bash_prompt:> MKIAPP_ENV_PRESENTATION_GITHASH=\$(git log -1 --pretty=%h) \\
+    MKIAPP_ENV_PRESENTATION_GITHASH=$(git log -1 --pretty=%h) \
                     mkiapp > myiAppTemplate.tmpl
 
-This would replace ''<MKIAPP_ENV_PRESENTATION_GITHASH>'' with the output of the command `git log -1 --pretty=%h` in the iApp Presentation Section.
+This would replace '`<MKIAPP_ENV_PRESENTATION_GITHASH>` with the short version of the latest git hash (command: `git log -1 --pretty=%h`) in the generated iApp Presentation Section.
 
-You could also add this variable to the `.mkiapp_config` file to automatically set it whenever you run mkiapp:
+You could also add this variable to the `.mkiapp` file to automatically set it whenever you run `mkiapp`:
 
-    export MKIAPP_ENV_PRESENTATION_GITHASH=\$(git log -1 --pretty=%h)
+    mkiapp config MKIAPP_ENV_PRESENTATION_GITHASH "\$(git log -1 --pretty=%h)"
 
-In addition, `MKIAPP_FILE_`/`<MKIAPP_FILE_>` variables/placeholders allow to include file contents instead of a single variable. This can be helpful, for example to include additional script code in the implementation section.
+*Not enough?*
 
-> *Important:* All information on the line containing the placeholder `<MKIAPP_FILE_>` will be replaced! Make sure the placeholder is the *only* entry in the line.
+Using `$MKIAPP_FILE_` variables allow to include file contents instead of a single value. This can be helpful, for example to include additional script code in the implementation section.
+For example the placeholder `<MKIAPP_FILE_BASH_SCRIPT>` could be used to include a bash script in a variable within the implementation section.
 
-`<MKIAPP_ENV_>` placeholders can be used in files which are included by `<MKIAPP_FILE_>` placeholders.
+    set bash_script {
+    <MKIAPP_FILE_BASH_SCRIPT>
+    }
 
-# building your own template
+ `$MKIAPP_FILE_BASH_SCRIPT` would then need to point a file. The file content would be included in the `set bash_script { }` tcl code within the implementation section.
 
+> ***Important:*** You might have noticed that the placeholder `<MKIAPP_FILE_BASH_SCRIPT>` is placed on a separate line. The reason is that information on the line will be replaced! Therefore make sure the placeholder is the *only* entry in the line, as in the example above.
+
+*Still not enough?*
+
+`<MKIAPP_ENV_>` placeholders can be used in files included by `<MKIAPP_FILE_>` as well. :-)
+
+## Creating your own iApp Skeleton Template
+If you need a custom `iApp Skeleton Template`, you can start off by using the `builtin` one.
 The builtin template can be listed with `mkiapp showbuiltin`:
 
     #TMSH-VERSION: <MKIAPP_VAR_TMSH_VERSION>
+    
     cli admin-partitions {
         update-partition Common
     }
-    sys application template /Common/<MKIAPP_IAPP_TEMPLATE_NAME> {
+    sys application template /Common/<MKIAPP_IAPP_NAME> {
         actions {
             definition {
                 html-help {
@@ -108,10 +250,12 @@ The builtin template can be listed with `mkiapp showbuiltin`:
         ignore-verification false
         requires-bigip-version-max <MKIAPP_VAR_MINVERSION>
         requires-bigip-version-min <MKIAPP_VAR_MAXVERSION>
-        requires-modules { <MKIAPP_VAR_MODULES> }
+        requires-modules { <MKIAPP_VAR_REQUIRED_MODULES> }
         signing-key none
         tmpl-checksum none
         tmpl-signature none
     }
 
-> *Important:* Please note that the the whole line of section file placeholders `<MKIAPP_SECTIONFILE_>` will be replaced! Make sure the placeholder is the *only* entry in the line, as shown above.
+Add your own `<placeholders>` as required.
+
+> ***Important:*** Please note that the the whole line of `Section Skeleton File` placeholders (`<MKIAPP_SECTIONFILE_>` ) will be replaced! Make sure the placeholder is the *only* entry in the line, as shown above.
