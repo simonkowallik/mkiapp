@@ -7,10 +7,7 @@ When developing larger iApps you most likely want to split the separate sections
 
 
 # Not convinced? Watch this demo!
-[Youtube](https://youtu.be/eBpsP71XFl8)
-
-    # TODO: UPDATE! #
-[![Youtube Demo Video](https://img.youtube.com/vi/eBpsP71XFl8/0.jpg)](https://youtu.be/eBpsP71XFl8)
+[![asciicast](https://asciinema.org/a/z84ZtVsXbq6OIsf0JStlRkeCT.png)](https://asciinema.org/a/z84ZtVsXbq6OIsf0JStlRkeCT)
 
 # Installation
 
@@ -23,6 +20,8 @@ You can install `mkiapp` via homebrew and linuxbrew.
     brew install simonkowallik/f5/mkiapp
 
 If you want to receive updates when running `brew update` add my tap with `brew tap simonkowallik/f5`.
+
+> ***Info for fish users:*** If you have trouble running `mkiapp` with fish, either create an alias (`alias mkiapp (which mkiapp)`) or execute `mkiapp` with it's full path (eg. `/usr/local/bin/mkiapp`).
 
 # Details
 To generate the target iApp, which can be used on an F5 BIG-IP device, `mkiapp` uses a so called `iApp Skeleton Template`.
@@ -155,6 +154,18 @@ There are a couple of other options available to generate your iApp. `--implemen
 `--no-implementation`, `--no-presentation`, `--no-macro` and `--no-html` on the other hand allow you specifically exclude the specified section. 
 
 > ***Note:*** You always have to run `mkiapp` in the directory you "initialised" (contains the `.mkiapp configuration file`), similar to `git`.
+
+## TODO: deploy iApp template to an F5 BIG-IP
+TODO: elaborate on this
+1. scp ./my_iapp_template.tmpl user@bigip:/tmp/my_iapp_template.tmpl
+2. ssh user@bigip 'tmsh load sys config merge verify file /tmp/my_iapp_template.tmpl'
+3. ssh user@bigip 'tmsh load sys config merge file /tmp/my_iapp_template.tmpl'
+
+best to use with ssh public-key authentication
+
+TODO IDEA:
+create 'deploy' arg to execute above, allow with -- and --no flags
+'deploy' takes one optional argument: user@bigip otherwise reads it from MKIAPP_DEPLOY_BIGIP
 
 # Examples
 Two examples are located in the examples folder of this repository to demonstrate the use of `mkiapp`.
