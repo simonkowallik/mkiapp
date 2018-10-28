@@ -7,7 +7,10 @@ When developing larger iApps you most likely want to split the separate sections
 
 
 # Not convinced? Watch this demo!
-[![asciicast](https://asciinema.org/a/z84ZtVsXbq6OIsf0JStlRkeCT.png)](https://asciinema.org/a/z84ZtVsXbq6OIsf0JStlRkeCT)
+<p align="center">
+    <img src="https://simonkowallik.github.io/mkiapp/examples/demo.svg">
+</p>
+
 
 # Installation
 
