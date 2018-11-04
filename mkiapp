@@ -33,8 +33,8 @@ sys application template /Common/<MKIAPP_IAPP_NAME> {
     }
     description none
     ignore-verification false
-    requires-bigip-version-max <MKIAPP_VAR_MINVERSION>
-    requires-bigip-version-min <MKIAPP_VAR_MAXVERSION>
+    requires-bigip-version-max <MKIAPP_VAR_MAXVERSION>
+    requires-bigip-version-min <MKIAPP_VAR_MINVERSION>
     requires-modules { <MKIAPP_VAR_REQUIRED_MODULES> }
     signing-key none
     tmpl-checksum none
