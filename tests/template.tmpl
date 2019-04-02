@@ -1,0 +1,33 @@
+#TMSH-VERSION: <MKIAPP_VAR_TMSH_VERSION>
+
+cli admin-partitions {
+    update-partition Common
+}
+sys application template /Common/<MKIAPP_IAPP_NAME> {
+    actions {
+        definition {
+            html-help {
+<MKIAPP_SECTIONFILE_HELP>
+            }
+            implementation {
+<MKIAPP_SECTIONFILE_IMPLEMENTATION>
+            }
+            macro {
+<MKIAPP_SECTIONFILE_MACRO>
+            }
+            presentation {
+<MKIAPP_SECTIONFILE_PRESENTATION>
+            }
+            role-acl none
+            run-as none
+        }
+    }
+    description none
+    ignore-verification false
+    requires-bigip-version-max <MKIAPP_VAR_MAXVERSION>
+    requires-bigip-version-min <MKIAPP_VAR_MINVERSION>
+    requires-modules { <MKIAPP_VAR_REQUIRED_MODULES> }
+    signing-key none
+    tmpl-checksum none
+    tmpl-signature none
+}

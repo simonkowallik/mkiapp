@@ -1,0 +1,50 @@
+#TMSH-VERSION: 11.6.0
+
+cli admin-partitions {
+    update-partition Common
+}
+sys application template /Common/simple_test {
+    actions {
+        definition {
+            html-help {
+<h1>HTML Help</h1>
+<p>This is the HTML Help file</p>
+            }
+            implementation {
+iapp::template start
+
+iapp::conf create ltm rule $::main__irule_name [tmsh::expand_macro -vars [list "code" $::main__status_code]]
+
+iapp::template stop
+            }
+            macro {
+when HTTP_REQUEST {
+    HTTP::respond <%= $::code %> content "Sorry, we can't serve your request right now."
+}
+            }
+            presentation {
+section main {
+    message info "This iApp creates an iRule which responds to every HTTP request."
+    string irule_name display "xlarge"
+    choice status_code default "500" { "200", "400", "500", "501" }
+}
+text {
+    main "Main Configuration"
+    main.info "Info:"
+    main.irule_name "iRule Name:"
+    main.status_code "HTTP response status code to send:"
+}
+            }
+            role-acl none
+            run-as none
+        }
+    }
+    description none
+    ignore-verification false
+    requires-bigip-version-max none
+    requires-bigip-version-min none
+    requires-modules {  }
+    signing-key none
+    tmpl-checksum none
+    tmpl-signature none
+}

@@ -1,9 +1,32 @@
 #!/usr/bin/env bash
 
-VERSION="1.1"
+VERSION="2.0"
 HOMEPAGE="https://github.com/simonkowallik/mkiapp"
 PROGRAM=$(basename "$0")
 CONFIGFILE=".mkiapp"
+
+# example Makefile
+_Makefile=$(cat <<'EOF'
+BUSER ?= root
+BIGIP ?= 192.168.0.245
+
+all:
+	mkiapp > iapp.tmpl
+
+build: all
+
+upload:
+	scp iapp.tmpl $(BUSER)@$(BIGIP):/tmp/
+
+verify: upload
+	ssh $(BUSER)@$(BIGIP) 'tmsh load sys config merge verify file /tmp/iapp.tmpl'
+
+deploy: verify
+	ssh $(BUSER)@$(BIGIP) 'tmsh load sys config merge file /tmp/iapp.tmpl'
+
+install: deploy
+EOF
+)
 
 # builtin iapp skeleton
 _builtinSkeleton=$(cat <<'EOF'
@@ -60,10 +83,10 @@ editcmd="$(command -v "$EDITOR" || command -v vim || command -v vi || command -v
 # init mkiapp function
 function mkinit() {
 export MKIAPP_IAPP_NAME=$(basename "$(pwd)")
-export MKIAPP_SECTIONFILE_PRESENTATION="$(ls presentation\.* 2>/dev/null || echo 'presentation.tcl' | head -1)"
-export MKIAPP_SECTIONFILE_IMPLEMENTATION="$(ls implementation\.* 2>/dev/null || echo 'implementation.tcl' | head -1)"
-export MKIAPP_SECTIONFILE_HELP="$(ls help\.* 2>/dev/null || echo 'help.html' | head -1)"
-export MKIAPP_SECTIONFILE_MACRO="$(ls macro\.* 2>/dev/null || echo 'macro.tcl' | head -1)"
+export MKIAPP_SECTIONFILE_PRESENTATION="$(ls presentation\.* 2>/dev/null || ls src/presentation\.* 2>/dev/null || ls source/presentation\.* 2>/dev/null || echo 'presentation.tcl' | head -1)"
+export MKIAPP_SECTIONFILE_IMPLEMENTATION="$(ls implementation\.* 2>/dev/null || ls src/implementation\.* 2>/dev/null || ls source/implementation\.* 2>/dev/null || echo 'implementation.tcl' | head -1)"
+export MKIAPP_SECTIONFILE_HELP="$(ls help\.* 2>/dev/null || ls src/help\.* 2>/dev/null || ls source/help\.* 2>/dev/null || echo 'help.html' | head -1)"
+export MKIAPP_SECTIONFILE_MACRO="$(ls macro\.* 2>/dev/null || ls src/macro\.* 2>/dev/null || ls source/macro\.* 2>/dev/null || echo 'macro.tcl' | head -1)"
 export MKIAPP_VAR_TMSH_VERSION="11.6.0"
 export MKIAPP_VAR_MINVERSION="none"
 export MKIAPP_VAR_MAXVERSION="none"
@@ -146,7 +169,7 @@ function mkiapp_config() {
         $awkcmd -v pattern="^export ${1}=.*\$" 'BEGIN {code=1} { if ($0 ~ pattern) {code=0} } END {exit code}' "$CONFIGFILE" \
             && $awkcmd -v pattern="^export ${1}=.*\$" -v value="export ${1}=\"${2}\"" \
                 '{ if ($0 ~ pattern) {gsub(pattern, value)} print }' \
-                "$CONFIGFILE" | tee "$CONFIGFILE" >/dev/null \
+                "$CONFIGFILE" > "${CONFIGFILE}.tmp" && mv -f "${CONFIGFILE}.tmp" "$CONFIGFILE"  >/dev/null \
             || echo "export ${1}=\"${2}\"" >> "$CONFIGFILE"
     else
         # this should never happen
@@ -155,10 +178,11 @@ function mkiapp_config() {
 }
 
 function print_help() {
-    printf 'usage: %s [init] [init-files] [showbuiltin] [config [edit] [<key>] [<key> <value>]] [-t|--template <file>] [--(no-)impl|--(no-)implementation] [--(no-)apl|--(no-)presentation] [--(no-)macro] [--(no-)html] [-h|--help] [-v|--version]\n' "$PROGRAM"
+    printf 'usage: %s [init] [init-files] [showbuiltin] [showmakefile] [config [edit] [<key>] [<key> <value>]] [-t|--template <file>] [--(no-)impl|--(no-)implementation] [--(no-)apl|--(no-)presentation] [--(no-)macro] [--(no-)html] [-h|--help] [-v|--version]\n' "$PROGRAM"
     printf '%20s    %s\n' "init:" "initialize current working directory for $PROGRAM"
     printf '%20s    %s\n' "init-files:" "create Section Skeleton Files in current working directory"
     printf '%20s    %s\n' "showbuiltin:" "print builtin iApp Skeleton Template"
+    printf '%20s    %s\n' "showmakefile:" "print example Makefile"
     printf '%20s    %s\n' "config:" "no arguments: prints full configuration"
     printf '%24s%s\n' "" "edit: opens configuration in \$EDITOR"
     printf '%24s%s\n' "" "<key>: prints its value"
@@ -241,6 +265,11 @@ function parse_cmd() {
             showbuiltin)
                 test $# -gt 1 && err_exit "Too many arugments '$_arg'."
                 echo "$_builtinSkeleton"
+                exit 0
+                ;;
+            showmakefile|makefile)
+                test $# -gt 1 && err_exit "Too many arugments '$_arg'."
+                echo "$_Makefile"
                 exit 0
                 ;;
             config)
