@@ -122,10 +122,11 @@ Of course you can just use your favorite editor to modify the file.
 # Usage
 `mkiapp --help` will provide you with the following help.
 
-    usage: mkiapp [init] [init-files] [showbuiltin] [config [edit] [<key>] [<key> <value>]] [-t|--template <file>] [--(no-)impl|--(no-)implementation] [--(no-)apl|--(no-)presentation] [--(no-)macro] [--(no-)html] [-h|--help] [-v|--version]
+    usage: mkiapp [init] [init-files] [showbuiltin] [showmakefile] [config [edit] [<key>] [<key> <value>]] [-t|--template <file>] [--(no-)impl|--(no-)implementation] [--(no-)apl|--(no-)presentation] [--(no-)macro] [--(no-)html] [-h|--help] [-v|--version]
                    init:    initialize current working directory for mkiapp
              init-files:    create Section Skeleton Files in current working directory
             showbuiltin:    print builtin iApp Skeleton Template
+           showmakefile:    print example Makefile
                  config:    no arguments: prints full configuration
                             edit: opens configuration in $EDITOR
                             <key>: prints its value
@@ -181,10 +182,10 @@ ssh root@bigip 'tmsh load sys config merge file /tmp/my_iapp_template.tmpl'
 Best to use with ssh public-key authentication.
 
 Also checkout the examples/Makefile, which provides a simple way to copy the built iapp to a BIG-IP.
+If you like it `mkiapp showmakefile > ./Makefile` will build it for you!
 
 # Examples
 Two examples are located in the examples folder of this repository to demonstrate the use of `mkiapp`.
-
 
 # Extensibility and customisation
 The `mkiapp` functionality can be further extended. `mkiapp` uses the bash `source` command to include `.mkiapp`, which gives you a lot of power and control over `mkiapp`.

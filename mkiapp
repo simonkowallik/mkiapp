@@ -5,6 +5,29 @@ HOMEPAGE="https://github.com/simonkowallik/mkiapp"
 PROGRAM=$(basename "$0")
 CONFIGFILE=".mkiapp"
 
+# example Makefile
+_Makefile=$(cat <<'EOF'
+BUSER ?= root
+BIGIP ?= 192.168.0.245
+
+all:
+	mkiapp > iapp.tmpl
+
+build: all
+
+upload:
+	scp iapp.tmpl $(BUSER)@$(BIGIP):/tmp/
+
+verify: upload
+	ssh $(BUSER)@$(BIGIP) 'tmsh load sys config merge verify file /tmp/iapp.tmpl'
+
+deploy: verify
+	ssh $(BUSER)@$(BIGIP) 'tmsh load sys config merge file /tmp/iapp.tmpl'
+
+install: deploy
+EOF
+)
+
 # builtin iapp skeleton
 _builtinSkeleton=$(cat <<'EOF'
 #TMSH-VERSION: <MKIAPP_VAR_TMSH_VERSION>
@@ -155,10 +178,11 @@ function mkiapp_config() {
 }
 
 function print_help() {
-    printf 'usage: %s [init] [init-files] [showbuiltin] [config [edit] [<key>] [<key> <value>]] [-t|--template <file>] [--(no-)impl|--(no-)implementation] [--(no-)apl|--(no-)presentation] [--(no-)macro] [--(no-)html] [-h|--help] [-v|--version]\n' "$PROGRAM"
+    printf 'usage: %s [init] [init-files] [showbuiltin] [showmakefile] [config [edit] [<key>] [<key> <value>]] [-t|--template <file>] [--(no-)impl|--(no-)implementation] [--(no-)apl|--(no-)presentation] [--(no-)macro] [--(no-)html] [-h|--help] [-v|--version]\n' "$PROGRAM"
     printf '%20s    %s\n' "init:" "initialize current working directory for $PROGRAM"
     printf '%20s    %s\n' "init-files:" "create Section Skeleton Files in current working directory"
     printf '%20s    %s\n' "showbuiltin:" "print builtin iApp Skeleton Template"
+    printf '%20s    %s\n' "showmakefile:" "print example Makefile"
     printf '%20s    %s\n' "config:" "no arguments: prints full configuration"
     printf '%24s%s\n' "" "edit: opens configuration in \$EDITOR"
     printf '%24s%s\n' "" "<key>: prints its value"
@@ -241,6 +265,11 @@ function parse_cmd() {
             showbuiltin)
                 test $# -gt 1 && err_exit "Too many arugments '$_arg'."
                 echo "$_builtinSkeleton"
+                exit 0
+                ;;
+            showmakefile|makefile)
+                test $# -gt 1 && err_exit "Too many arugments '$_arg'."
+                echo "$_Makefile"
                 exit 0
                 ;;
             config)
