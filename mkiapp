@@ -146,7 +146,7 @@ function mkiapp_config() {
         $awkcmd -v pattern="^export ${1}=.*\$" 'BEGIN {code=1} { if ($0 ~ pattern) {code=0} } END {exit code}' "$CONFIGFILE" \
             && $awkcmd -v pattern="^export ${1}=.*\$" -v value="export ${1}=\"${2}\"" \
                 '{ if ($0 ~ pattern) {gsub(pattern, value)} print }' \
-                "$CONFIGFILE" | tee "$CONFIGFILE" >/dev/null \
+                "$CONFIGFILE" > "${CONFIGFILE}.tmp" && mv -f "${CONFIGFILE}.tmp" "$CONFIGFILE"  >/dev/null \
             || echo "export ${1}=\"${2}\"" >> "$CONFIGFILE"
     else
         # this should never happen
