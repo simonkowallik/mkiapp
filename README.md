@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.com/simonkowallik/mkiapp.svg?branch=master)](https://travis-ci.com/simonkowallik/mkiapp)
 # Intro
 `mkiapp` simplifies the process of "putting the pieces together" when developing iApps.
 When developing larger iApps you most likely want to split the separate sections into files and not use the WebUI to develop it either.
@@ -158,17 +159,28 @@ There are a couple of other options available to generate your iApp. `--implemen
 
 > ***Note:*** You always have to run `mkiapp` in the directory you "initialised" (contains the `.mkiapp configuration file`), similar to `git`.
 
-## TODO: deploy iApp template to an F5 BIG-IP
-TODO: elaborate on this
-1. scp ./my_iapp_template.tmpl user@bigip:/tmp/my_iapp_template.tmpl
-2. ssh user@bigip 'tmsh load sys config merge verify file /tmp/my_iapp_template.tmpl'
-3. ssh user@bigip 'tmsh load sys config merge file /tmp/my_iapp_template.tmpl'
+## Deploy iApp template to an F5 BIG-IP
+Various ways are available to deploy the iApp template on an F5 BIG-IP.
+While detailing all possibilities is out of scope of this tool, here is a short quide using ssh/command line:
 
-best to use with ssh public-key authentication
+1. copy the iapp template to the BIG-IP /tmp directory (the directory matters for step 2+3!)
+```sh
+scp ./my_iapp_template.tmpl root@bigip:/tmp/my_iapp_template.tmpl
+```
 
-TODO IDEA:
-create 'deploy' arg to execute above, allow with -- and --no flags
-'deploy' takes one optional argument: user@bigip otherwise reads it from MKIAPP_DEPLOY_BIGIP
+2. verify that the template has no syntax errors before merging it
+```sh
+ssh root@bigip 'tmsh load sys config merge verify file /tmp/my_iapp_template.tmpl'
+```
+
+3. merge iapp template into current configuration (note that this overwrites any existing template which has the same iapp name)
+```sh
+ssh root@bigip 'tmsh load sys config merge file /tmp/my_iapp_template.tmpl'
+```
+
+Best to use with ssh public-key authentication.
+
+Also checkout the examples/Makefile, which provides a simple way to copy the built iapp to a BIG-IP.
 
 # Examples
 Two examples are located in the examples folder of this repository to demonstrate the use of `mkiapp`.
