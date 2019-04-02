@@ -60,10 +60,10 @@ editcmd="$(command -v "$EDITOR" || command -v vim || command -v vi || command -v
 # init mkiapp function
 function mkinit() {
 export MKIAPP_IAPP_NAME=$(basename "$(pwd)")
-export MKIAPP_SECTIONFILE_PRESENTATION="$(ls presentation\.* 2>/dev/null || echo 'presentation.tcl' | head -1)"
-export MKIAPP_SECTIONFILE_IMPLEMENTATION="$(ls implementation\.* 2>/dev/null || echo 'implementation.tcl' | head -1)"
-export MKIAPP_SECTIONFILE_HELP="$(ls help\.* 2>/dev/null || echo 'help.html' | head -1)"
-export MKIAPP_SECTIONFILE_MACRO="$(ls macro\.* 2>/dev/null || echo 'macro.tcl' | head -1)"
+export MKIAPP_SECTIONFILE_PRESENTATION="$(ls presentation\.* 2>/dev/null || ls src/presentation\.* 2>/dev/null || ls source/presentation\.* 2>/dev/null || echo 'presentation.tcl' | head -1)"
+export MKIAPP_SECTIONFILE_IMPLEMENTATION="$(ls implementation\.* 2>/dev/null || ls src/implementation\.* 2>/dev/null || ls source/implementation\.* 2>/dev/null || echo 'implementation.tcl' | head -1)"
+export MKIAPP_SECTIONFILE_HELP="$(ls help\.* 2>/dev/null || ls src/help\.* 2>/dev/null || ls source/help\.* 2>/dev/null || echo 'help.html' | head -1)"
+export MKIAPP_SECTIONFILE_MACRO="$(ls macro\.* 2>/dev/null || ls src/macro\.* 2>/dev/null || ls source/macro\.* 2>/dev/null || echo 'macro.tcl' | head -1)"
 export MKIAPP_VAR_TMSH_VERSION="11.6.0"
 export MKIAPP_VAR_MINVERSION="none"
 export MKIAPP_VAR_MAXVERSION="none"
