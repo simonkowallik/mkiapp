@@ -3,46 +3,34 @@
 cli admin-partitions {
     update-partition Common
 }
-sys application template /Common/adv_test {
+sys application template /Common/simple_test {
     actions {
         definition {
             html-help {
+<h1>HTML Help</h1>
+<p>This is the HTML Help file</p>
             }
             implementation {
 iapp::template start
 
-iapp::conf create ltm rule ${::main__irule_name}_${::main__version} [tmsh::expand_macro -vars [list "code" $::main__status_code]]
+iapp::conf create ltm rule $::main__irule_name [tmsh::expand_macro -vars [list "code" $::main__status_code]]
 
 iapp::template stop
             }
             macro {
 when HTTP_REQUEST {
-    HTTP::respond <%= $::code %> content {
-<!DOCTYPE html>
-<html>
-<head>
-<title>Sorry</title>
-</head>
-<body>
-Sorry, we can't serve your request right now. Please try again later.
-<br/>
-Version: v01
-</body>
-</html>
-    } "Content-Type" "text/html"
+    HTTP::respond <%= $::code %> content "Sorry, we can't serve your request right now."
 }
             }
             presentation {
 section main {
     message info "This iApp creates an iRule which responds to every HTTP request."
-    choice version {"v01"}
     string irule_name display "xlarge"
     choice status_code default "500" { "200", "400", "500", "501" }
 }
 text {
     main "Main Configuration"
     main.info "Info:"
-    main.version "iApp Version:"
     main.irule_name "iRule Name:"
     main.status_code "HTTP response status code to send:"
 }
