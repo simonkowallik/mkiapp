@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-VERSION="1.1"
+VERSION="2.0"
 HOMEPAGE="https://github.com/simonkowallik/mkiapp"
 PROGRAM=$(basename "$0")
 CONFIGFILE=".mkiapp"
