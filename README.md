@@ -126,9 +126,9 @@ Of course you can just use your favorite editor to modify the file.
 ## Usage
 `mkiapp --help` will provide you with the following help.
 
-    usage: mkiapp [init] [init-files] [showbuiltin] [showmakefile] [config [edit] [<key>] [<key> <value>]] [-t|--template <file>] [--(no-)impl|--(no-)implementation] [--(no-)apl|--(no-)presentation] [--(no-)macro] [--(no-)html] [-h|--help] [-v|--version]
+    usage: mkiapp [init] [init-files [DIR]] [showbuiltin] [showmakefile] [config [edit] [<key>] [<key> <value>]] [-t|--template <file>] [--(no-)impl|--(no-)implementation] [--(no-)apl|--(no-)presentation] [--(no-)macro] [--(no-)html] [-h|--help] [-v|--version]
                    init:    initialize current working directory for mkiapp
-             init-files:    create Section Skeleton Files in current working directory
+             init-files:    create Section Skeleton Files in current working directory or [DIR]
             showbuiltin:    print builtin iApp Skeleton Template
            showmakefile:    print example Makefile
                  config:    no arguments: prints full configuration
@@ -150,7 +150,7 @@ Of course you can just use your favorite editor to modify the file.
     mkiapp simplifies the process of combining separate source files into an iApp Template.
     Start with 'mkiapp init' to initialize the current working directory. Executing 'mkiapp' will generate an iApp.
 
-You start with `mkiapp init`, as outlined earlier. If you start a new project you can use `mkiapp init-files` to create the `Section Skeleton Files` in the current working directory (don't worry, existing files will not be overwritten).
+You start with `mkiapp init`, as outlined earlier. If you start a new project you can use `mkiapp init-files [DIR]` to create the `Section Skeleton Files` in the current working directory or `[DIR]` (don't worry, existing files will not be overwritten).
 
 Once you have you files ready and updated with content, you can generate your own iApp.
 Running `mkiapp` will use the `iApp Skeleton Template`, include all `Section Skeleton Files` and `Skeleton Template Variables` and output your own iApp Template on the console (`STDOUT`).

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-VERSION="2.0"
+VERSION="2.1"
 HOMEPAGE="https://github.com/simonkowallik/mkiapp"
 PROGRAM=$(basename "$0")
 CONFIGFILE=".mkiapp"
@@ -143,10 +143,15 @@ echo
 
 # init mkiapp function
 function mkinit_files() {
-    touch implementation.tcl && echo "implementation.tcl"
-    touch presentation.tcl && echo "presentation.tcl"
-    touch macro.tcl && echo "macro.tcl"
-    touch help.html && echo "help.html"
+    DIR=$1
+    if [[ -n "$DIR" ]]; then
+        mkdir -p ./$DIR
+        DIR=${DIR%/}/
+    fi
+    touch ${DIR}implementation.tcl && echo "${DIR}implementation.tcl"
+    touch ${DIR}presentation.tcl && echo "${DIR}presentation.tcl"
+    touch ${DIR}macro.tcl && echo "${DIR}macro.tcl"
+    touch ${DIR}help.html && echo "${DIR}help.html"
 }
 # 
 function mkiapp_config() {
@@ -178,9 +183,9 @@ function mkiapp_config() {
 }
 
 function print_help() {
-    printf 'usage: %s [init] [init-files] [showbuiltin] [showmakefile] [config [edit] [<key>] [<key> <value>]] [-t|--template <file>] [--(no-)impl|--(no-)implementation] [--(no-)apl|--(no-)presentation] [--(no-)macro] [--(no-)html] [-h|--help] [-v|--version]\n' "$PROGRAM"
+    printf 'usage: %s [init] [init-files [DIR]] [showbuiltin] [showmakefile] [config [edit] [<key>] [<key> <value>]] [-t|--template <file>] [--(no-)impl|--(no-)implementation] [--(no-)apl|--(no-)presentation] [--(no-)macro] [--(no-)html] [-h|--help] [-v|--version]\n' "$PROGRAM"
     printf '%20s    %s\n' "init:" "initialize current working directory for $PROGRAM"
-    printf '%20s    %s\n' "init-files:" "create Section Skeleton Files in current working directory"
+    printf '%20s    %s\n' "init-files:" "create Section Skeleton Files in current working directory or [DIR]"
     printf '%20s    %s\n' "showbuiltin:" "print builtin iApp Skeleton Template"
     printf '%20s    %s\n' "showmakefile:" "print example Makefile"
     printf '%20s    %s\n' "config:" "no arguments: prints full configuration"
@@ -258,8 +263,8 @@ function parse_cmd() {
                 fi
                 ;;
             init-files)
-                test $# -gt 1 && err_exit "Too many arugments '$_arg'."
-                mkinit_files
+                test $# -gt 2 && err_exit "Too many arugments '$_arg'."
+                mkinit_files $2
                 exit 0
                 ;;
             showbuiltin)
