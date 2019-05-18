@@ -7,3 +7,4 @@ script:
   - ./tests/test_simple.sh
   - ./tests/test_advanced.sh
   - ./tests/test_version_attributes.sh
+  - ./tests/test_multiple_MKIAPP_FILE.sh

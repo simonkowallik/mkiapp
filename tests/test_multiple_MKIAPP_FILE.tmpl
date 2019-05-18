@@ -1,0 +1,35 @@
+#TMSH-VERSION: 11.6.0
+
+cli admin-partitions {
+    update-partition Common
+}
+sys application template /Common/MKIAPP_FILE {
+    actions {
+        definition {
+            html-help {
+            }
+            implementation {
+# first
+test.include:line one
+test.include:line two
+# second
+test.include:line one
+test.include:line two
+            }
+            macro {
+            }
+            presentation {
+            }
+            role-acl none
+            run-as none
+        }
+    }
+    description none
+    ignore-verification false
+    requires-bigip-version-max none
+    requires-bigip-version-min none
+    requires-modules {  }
+    signing-key none
+    tmpl-checksum none
+    tmpl-signature none
+}
